@@ -1,7 +1,10 @@
 import faiss
 import numpy as np
+from dotenv import load_dotenv
 from openai import OpenAI
 from app.db import SessionLocal, Chunk
+
+load_dotenv()
 
 client = OpenAI()
 
