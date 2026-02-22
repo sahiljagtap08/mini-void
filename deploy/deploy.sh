@@ -131,15 +131,22 @@ aws ec2 authorize-security-group-ingress \
 
 echo ""
 echo "=== 8. Create ECS service ==="
-aws ecs create-service \
-  --cluster $CLUSTER \
-  --service-name $SERVICE \
-  --task-definition $TASK_FAMILY \
-  --launch-type FARGATE \
-  --desired-count 1 \
-  --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
-  --region $REGION > /dev/null \
-  2>/dev/null && echo "Service created." || echo "Service already exists."
+EXISTING=$(aws ecs describe-services --cluster $CLUSTER --services $SERVICE --region $REGION \
+  --query 'services[?status==`ACTIVE`].serviceName' --output text 2>/dev/null)
+
+if [ -z "$EXISTING" ]; then
+  aws ecs create-service \
+    --cluster $CLUSTER \
+    --service-name $SERVICE \
+    --task-definition $TASK_FAMILY \
+    --launch-type FARGATE \
+    --desired-count 1 \
+    --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SG_ID],assignPublicIp=ENABLED}" \
+    --region $REGION > /dev/null
+  echo "Service created."
+else
+  echo "Service already exists, skipping."
+fi
 
 echo ""
 echo "=== Waiting for task to start (30s) ==="
